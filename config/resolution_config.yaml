@@ -1,0 +1,125 @@
+# Entity Resolution Configuration
+resolution:
+  # Similarity thresholds
+  thresholds:
+    name_similarity: 0.85
+    email_similarity: 0.90
+    phone_similarity: 0.95
+    address_similarity: 0.75
+    overall_threshold: 0.80
+  
+  # Matching algorithms
+  algorithms:
+    name:
+      - type: "fuzzy"
+        method: "token_sort_ratio"
+        weight: 0.4
+      - type: "fuzzy"
+        method: "partial_ratio"
+        weight: 0.3
+      - type: "levenshtein"
+        weight: 0.3
+    
+    email:
+      - type: "exact"
+        weight: 0.6
+      - type: "fuzzy"
+        method: "ratio"
+        weight: 0.4
+    
+    phone:
+      - type: "normalized"
+        weight: 0.7
+      - type: "fuzzy"
+        method: "ratio"
+        weight: 0.3
+    
+    address:
+      - type: "fuzzy"
+        method: "token_set_ratio"
+        weight: 0.5
+      - type: "fuzzy"
+        method: "partial_ratio"
+        weight: 0.5
+  
+  # Preprocessing settings
+  preprocessing:
+    normalize_names: true
+    remove_punctuation: true
+    lowercase: true
+    remove_extra_spaces: true
+    standardize_phone: true
+    extract_address_components: true
+  
+  # Blocking strategies
+  blocking:
+    enabled: true
+    strategies:
+      - type: "soundex"
+        field: "name"
+        block_size_limit: 1000
+      - type: "first_n_chars"
+        field: "email"
+        n: 3
+        block_size_limit: 500
+      - type: "area_code"
+        field: "phone"
+        block_size_limit: 2000
+  
+  # Clustering parameters
+  clustering:
+    method: "connected_components"  # or "hierarchical", "dbscan"
+    min_cluster_size: 2
+    max_cluster_size: 50
+    merge_threshold: 0.85
+  
+  # Output settings
+  output:
+    include_similarity_scores: true
+    include_matched_fields: true
+    include_confidence_intervals: true
+    export_graph_visualization: true
+
+# TigerGraph Configuration (reference to separate file)
+tigergraph:
+  config_file: "config/tigergraph_config.yaml"
+
+# Data Configuration
+data:
+  # Input data settings
+  input:
+    file_encoding: "utf-8"
+    delimiter: ","
+    has_header: true
+    required_fields: ["name", "email", "phone", "address"]
+    optional_fields: ["id", "source_system", "created_date"]
+  
+  # Data quality checks
+  quality:
+    min_field_completeness: 0.7
+    max_duplicate_percentage: 0.3
+    validate_email_format: true
+    validate_phone_format: true
+  
+  # Sample data for testing
+  sample_data_size: 1000
+  test_split: 0.2
+  
+# Evaluation Configuration
+evaluation:
+  metrics:
+    - "precision"
+    - "recall"
+    - "f1_score"
+    - "accuracy"
+  
+  cross_validation:
+    enabled: false
+    folds: 5
+    stratify: true
+  
+  # Ground truth settings
+  ground_truth:
+    file_path: "data/ground_truth.csv"
+    entity_id_column: "true_entity_id"
+    record_id_column: "record_id" 

@@ -1,0 +1,30 @@
+
+
+## Configuration
+
+### Entity Resolution Configuration (`config/resolution_config.yaml`)
+
+```yaml
+resolution:
+  thresholds:
+    name_similarity: 0.85
+    email_similarity: 0.90
+    overall_threshold: 0.80
+  
+  algorithms:
+    name:
+      - type: "fuzzy"
+        method: "token_sort_ratio"
+        weight: 0.4
+```
+
+### TigerGraph Configuration (`config/tigergraph_config.yaml`)
+
+```yaml
+tigergraph:
+  host: "localhost"
+  port: 9000
+  username: "tigergraph"
+  password: "tigergraph"
+  graph_name: "EntityResolution"
+```

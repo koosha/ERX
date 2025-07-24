@@ -1,0 +1,86 @@
+# TigerGraph Database Configuration
+tigergraph:
+  # Server connection details
+  host: "localhost"
+  port: 9000
+  https: false
+  
+  # Authentication
+  username: "tigergraph"
+  password: "tigergraph"
+  secret: ""  # Leave empty if not using secret
+  
+  # Graph and schema
+  graph_name: "EntityResolution"
+  
+  # Connection settings
+  timeout: 30
+  max_retries: 3
+  
+  # REST API endpoints
+  rest_port: 9000
+  gsql_port: 8123
+  
+  # TLS/SSL settings (for production)
+  verify_ssl: false
+  cert_path: ""
+  
+# Graph Schema Configuration
+schema:
+  # Vertex types
+  vertices:
+    - name: "Entity"
+      attributes:
+        - name: "id"
+          type: "STRING"
+          is_primary: true
+        - name: "type"
+          type: "STRING"
+        - name: "confidence"
+          type: "DOUBLE"
+        - name: "source"
+          type: "STRING"
+        - name: "created_at"
+          type: "DATETIME"
+    
+    - name: "Record"
+      attributes:
+        - name: "id"
+          type: "STRING"
+          is_primary: true
+        - name: "name"
+          type: "STRING"
+        - name: "email"
+          type: "STRING"
+        - name: "phone"
+          type: "STRING"
+        - name: "address"
+          type: "STRING"
+        - name: "source_system"
+          type: "STRING"
+        - name: "created_at"
+          type: "DATETIME"
+  
+  # Edge types
+  edges:
+    - name: "BELONGS_TO"
+      from_vertex: "Record"
+      to_vertex: "Entity"
+      attributes:
+        - name: "confidence"
+          type: "DOUBLE"
+        - name: "method"
+          type: "STRING"
+        - name: "created_at"
+          type: "DATETIME"
+    
+    - name: "SIMILAR_TO"
+      from_vertex: "Record"
+      to_vertex: "Record"
+      attributes:
+        - name: "similarity_score"
+          type: "DOUBLE"
+        - name: "matching_fields"
+          type: "LIST<STRING>"
+        - name: "algorithm"
+          type: "STRING" 
