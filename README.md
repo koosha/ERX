@@ -89,118 +89,7 @@ For complete functionality with TigerGraph:
 ```bash
 python example_usage.py
 ```
-
-## Configuration
-
-### Entity Resolution Configuration (`config/resolution_config.yaml`)
-
-```yaml
-resolution:
-  thresholds:
-    name_similarity: 0.85
-    email_similarity: 0.90
-    overall_threshold: 0.80
-  
-  algorithms:
-    name:
-      - type: "fuzzy"
-        method: "token_sort_ratio"
-        weight: 0.4
-```
-
-### TigerGraph Configuration (`config/tigergraph_config.yaml`)
-
-```yaml
-tigergraph:
-  host: "localhost"
-  port: 9000
-  username: "tigergraph"
-  password: "tigergraph"
-  graph_name: "EntityResolution"
-```
-
-## Usage Examples
-
-### Basic Entity Resolution
-
-```python
-from src.core.entity_resolution import EntityResolver
-import pandas as pd
-
-# Load data
-df = pd.read_csv('data/sample_customer_large.csv')
-customers = df.to_dict('records')
-
-# Run entity resolution
-resolver = EntityResolver()
-entities = resolver.resolve_entities(customers)
-
-# Save results
-resolver.save_entities_to_csv('output/entities.csv')
-
-# Get summary
-summary = resolver.get_entity_summary()
-print(summary)
-```
-
-### Full Pipeline with TigerGraph
-
-```python
-from src.core.entity_resolution_pipeline import EntityResolutionPipeline
-
-# Initialize pipeline
-pipeline = EntityResolutionPipeline()
-
-# Run complete pipeline
-results = pipeline.run_full_pipeline(
-    customer_data_path='data/sample_customer_large.csv',
-    transaction_data_path='data/sample_trnx_large.csv',
-    output_dir='output'
-)
-
-# Access results
-entities = results['entities']
-features_df = results['features']
-summary = results['summary']
-```
-
-### Graph Analytics
-
-```python
-from src.core.tigergraph_client import TigerGraphClient
-
-# Initialize client
-tg_client = TigerGraphClient()
-
-# Run PageRank
-page_rank_scores = tg_client.run_page_rank()
-
-# Run Connected Components
-component_mapping = tg_client.run_connected_components()
-
-# Get entity neighbors
-neighbors = tg_client.get_entity_neighbors('ENT000001', max_depth=2)
-```
-
-### Feature Generation
-
-```python
-from src.core.feature_generator import FeatureGenerator
-from src.core.tigergraph_client import TigerGraphClient
-
-# Initialize
-tg_client = TigerGraphClient()
-feature_gen = FeatureGenerator(tg_client)
-
-# Generate features
-features_df = feature_gen.generate_all_features(entities)
-
-# Save features
-feature_gen.save_features_to_csv(features_df, 'output/features.csv')
-
-# Get feature summary
-summary = feature_gen.get_feature_summary(features_df)
-```
+"""
 
 ## Generated Features
 
@@ -288,10 +177,11 @@ Among different graph databases I chose Tiger Graph for scalability reasons. See
 
 This is a personal research project and there is no support or licensing
 
-## Roadmap
 
-<!-- - [ ] Support for additional data sources -->
-<!-- - [ ] Machine learning model integration -->
-<!-- - [ ] Integraiton to TigerGraph -->
-<!-- - [ ] API endpoints -->
-<!-- - [ ] Docker containerization -->
+<!--
+## Roadmap
+[ ] Support for additional data sources
+[ ] Machine learning model integration
+[ ] Integraiton to TigerGraph
+[ ] API endpoints
+[ ] Docker containerization -->
