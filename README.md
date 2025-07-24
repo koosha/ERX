@@ -37,27 +37,6 @@ This system provides three main components:
                        └──────────────────┘    └─────────────────┘
 ```
 
-## Installation
-
-1. **Clone the repository**:
-   ```bash
-   git clone <repository-url>
-   cd ERX
-   ```
-
-2. **Install Python dependencies**:
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-3. **Install TigerGraph** (optional, for full functionality):
-   - Follow the [TigerGraph installation guide](https://docs.tigergraph.com/start/install-and-setup)
-   - Or use Docker: `docker run -p 9000:9000 -p 8123:8123 tigergraph/tigergraph:latest`
-
-4. **Configure TigerGraph** (if using):
-   - Update `config/tigergraph_config.yaml` with your connection details
-   - Default settings assume localhost with default credentials
-
 ## Quick Start
 
 ### 1. Generate Sample Data
