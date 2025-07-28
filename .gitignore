@@ -51,9 +51,14 @@ logs/
 
 # Output files
 output/
-*.csv
 *.json
-*.xlsx
+
+# Large data files (exclude from git)
+data/*_large.csv
+data/entity.csv
+
+# Allow XLSX files in data_misc folder
+!data_misc/*.xlsx
 
 # Environment variables
 .env
