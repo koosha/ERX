@@ -31,58 +31,18 @@ The system processes data from three source systems:
 
 ## Architecture
 
-```mermaid
-%%{init: {'theme': 'base', 'securityLevel': 'loose', 'flowchart': {'useMaxWidth': true, 'htmlLabels': true}, 'mermaid': {'navigation': false}}}%%
-graph LR
-    subgraph "Data Sources"
-        A1["Transaction Data<br/>Originator/Beneficiary/TP<br/>information"]
-        A2["Orbis Data<br/>Company information<br/>and corporate records"]
-        A3["WorldCheck Data<br/>Individual and entity<br/>screening records"]
-    end
-    
-    subgraph "Data Processing"
-        B1["Party Extraction<br/>Extract parties from<br/>transaction roles"]
-        B2["Party Extraction<br/>Extract companies<br/>from Orbis"]
-        B3["Party Extraction<br/>Extract individuals<br/>from WorldCheck"]
-    end
-    
-    subgraph "Consolidation"
-        C["Party Reference<br/>Consolidated parties<br/>from all sources<br/>with contact info"]
-    end
-    
-    subgraph "Entity Resolution"
-        D["Entity Resolution Engine<br/>Fuzzy matching on<br/>Name/Email/Phone/Address<br/>Similarity threshold: 0.7"]
-    end
-    
-    subgraph "Output"
-        E["Resolved Entities<br/>Unique entities with<br/>confidence scores<br/>and resolved fields"]
-    end
-    
-    subgraph "Graph Database"
-        F["TigerGraph<br/>Graph schema with<br/>Entities as vertices<br/>Transactions as edges"]
-    end
-    
-    subgraph "Analytics"
-        G["Graph Analytics<br/>PageRank<br/>Connected Components<br/>Network Analysis"]
-        H["Feature Generation<br/>20+ graph-based features<br/>Risk scoring<br/>PEP detection"]
-    end
-    
-    A1 --> B1
-    A2 --> B2
-    A3 --> B3
-    
-    B1 --> C
-    B2 --> C
-    B3 --> C
-    
-    C --> D
-    D --> E
-    
-    E --> F
-    A1 --> F
-    
-    F --> G
-    F --> H
+```markdown
+┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
+│   Raw Data      │    │ Entity Resolution│    │ TigerGraph      │
+│   (CSV files)   │───▶│   Engine         │───▶│   Database      │
+└─────────────────┘    └──────────────────┘    └─────────────────┘
+                                │                        │
+                                ▼                        ▼
+                       ┌──────────────────┐    ┌─────────────────┐
+                       │ Feature Generator│    │ Graph Analytics │
+                       │   (20+ features) │    │ (PageRank, etc.)│
+                       └──────────────────┘    └─────────────────┘
+```
 ```
 
 ## Quick Start
