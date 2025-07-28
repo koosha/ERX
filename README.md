@@ -157,10 +157,3 @@ Among different graph databases I chose Tiger Graph for scalability reasons. See
 This is a personal research project and there is no support or licensing
 
 
-<!--
-## Roadmap
-[ ] Support for additional data sources
-[ ] Machine learning model integration
-[ ] Integraiton to TigerGraph
-[ ] API endpoints
-[ ] Docker containerization -->
