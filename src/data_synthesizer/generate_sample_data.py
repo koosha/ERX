@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Sample Data Generator for AML Entity Resolution
-Generates realistic sample data with proper entity relationships and overlaps
+Generates realistic sample data for the three source systems
 """
 
 import csv
@@ -14,14 +14,12 @@ import pandas as pd
 fake = Faker(['en_US', 'en_GB', 'de_DE', 'fr_FR', 'es_ES', 'it_IT', 'pt_BR', 'ja_JP', 'zh_CN', 'ru_RU'])
 
 # Global configuration
-CUSTOMER_COUNT = 500000
 ORBIS_COUNT = 100000
 WORLDCHECK_COUNT = 100000
 TRANSACTION_COUNT = 1000000
 
 # Overlap percentages
-CUSTOMER_ORBIS_OVERLAP = 0.40  # 40% of customers in Orbis
-CUSTOMER_WORLDCHECK_OVERLAP = 0.10  # 10% of customers in WorldCheck
+ORBIS_WORLDCHECK_OVERLAP = 0.15  # 15% overlap between Orbis and WorldCheck
 SUSPICIOUS_TRANSACTION_PERCENT = 0.05  # 5% suspicious transactions
 
 # Country codes for global distribution
@@ -52,104 +50,62 @@ def generate_name_variations(base_name):
     
     return variations
 
-def generate_address_variations(base_address):
-    """Generate address variations"""
-    variations = [base_address]
+def generate_email_from_name(name):
+    """Generate realistic email from name"""
+    # Clean name for email
+    clean_name = ''.join(c for c in name if c.isalnum() or c.isspace()).strip()
+    parts = clean_name.split()
     
-    # Street vs St
-    if " Street" in base_address:
-        variations.append(base_address.replace(" Street", " St"))
-    elif " St" in base_address:
-        variations.append(base_address.replace(" St", " Street"))
+    if len(parts) >= 2:
+        # firstname.lastname@domain.com
+        email = f"{parts[0].lower()}.{parts[-1].lower()}@{fake.domain_name()}"
+    else:
+        # single name
+        email = f"{parts[0].lower()}@{fake.domain_name()}"
     
-    # Avenue vs Ave
-    if " Avenue" in base_address:
-        variations.append(base_address.replace(" Avenue", " Ave"))
-    elif " Ave" in base_address:
-        variations.append(base_address.replace(" Ave", " Avenue"))
-    
-    return variations
+    return email
 
-def generate_customers():
-    """Generate 500K customer records"""
-    print("Generating customer data...")
+def generate_company_email_from_name(company_name):
+    """Generate realistic company email from company name"""
+    # Clean company name
+    clean_name = ''.join(c for c in company_name if c.isalnum() or c.isspace()).strip()
+    parts = clean_name.split()
     
-    customers = []
-    customer_names = set()
+    if len(parts) >= 2:
+        # firstword@company.com
+        email = f"{parts[0].lower()}@{fake.domain_name()}"
+    else:
+        # single word company
+        email = f"contact@{fake.domain_name()}"
     
-    for i in range(CUSTOMER_COUNT):
-        # Generate base customer
-        if random.random() < 0.7:  # 70% individuals, 30% companies
-            # Individual
-            first_name = fake.first_name()
-            last_name = fake.last_name()
-            base_name = f"{first_name} {last_name}"
-            
-            # Create variations
-            name_variations = generate_name_variations(base_name)
-            name = random.choice(name_variations)
-            
-            email = fake.email()
-            phone = fake.phone_number()
-            address = fake.address()
-            
-        else:
-            # Company
-            company_suffixes = ['Inc', 'Corp', 'Ltd', 'LLC', 'Company', 'Corporation', 'Limited']
-            base_name = fake.company()
-            suffix = random.choice(company_suffixes)
-            name = f"{base_name} {suffix}"
-            
-            email = fake.company_email()
-            phone = fake.phone_number()
-            address = fake.address()
-        
-        # Ensure unique names
-        if name in customer_names:
-            name = f"{name} {random.randint(1, 999)}"
-        customer_names.add(name)
-        
-        customer = {
-            'id': i + 1,
-            'name': name,
-            'email': email,
-            'phone': phone,
-            'address': address,
-            'source_system': f'system_{random.randint(1, 5)}'
-        }
-        customers.append(customer)
-    
-    return customers
+    return email
 
-def generate_orbis(customers):
-    """Generate 100K Orbis records with 40% overlap with customers"""
+def generate_phone_number():
+    """Generate realistic phone number"""
+    formats = [
+        f"555-{random.randint(100, 999)}-{random.randint(1000, 9999)}",
+        f"(555) {random.randint(100, 999)}-{random.randint(1000, 9999)}",
+        f"555{random.randint(1000000, 9999999)}",
+        f"555.{random.randint(100, 999)}.{random.randint(1000, 9999)}"
+    ]
+    return random.choice(formats)
+
+def generate_orbis():
+    """Generate 100K Orbis records"""
     print("Generating Orbis data...")
     
     orbis_records = []
-    customer_overlap_count = int(ORBIS_COUNT * CUSTOMER_ORBIS_OVERLAP)
     
-    # Select customers for overlap
-    overlap_customers = random.sample(customers, customer_overlap_count)
-    
-    # Generate Orbis records with customer overlap
     for i in range(ORBIS_COUNT):
-        if i < customer_overlap_count:
-            # Use customer data with variations
-            customer = overlap_customers[i]
-            name_variations = generate_name_variations(customer['name'])
-            name = random.choice(name_variations)
-            
-            # Add company suffixes if it's an individual
-            if ' ' in name and not any(suffix in name for suffix in ['Inc', 'Corp', 'Ltd', 'LLC', 'Company']):
-                suffixes = ['Inc', 'Corp', 'Ltd', 'LLC']
-                name = f"{name} {random.choice(suffixes)}"
-        else:
-            # Generate new company
-            name = fake.company()
-            suffixes = ['Inc', 'Corp', 'Ltd', 'LLC', 'Company', 'Corporation', 'Limited']
-            name = f"{name} {random.choice(suffixes)}"
+        # Generate company
+        name = fake.company()
+        suffixes = ['Inc', 'Corp', 'Ltd', 'LLC', 'Company', 'Corporation', 'Limited']
+        name = f"{name} {random.choice(suffixes)}"
         
         country = random.choice(COUNTRIES)
+        email = generate_company_email_from_name(name)
+        phone = generate_phone_number()
+        address = fake.address()
         
         orbis_record = {
             'orbis_id': f'ORB{i+1:06d}',
@@ -168,39 +124,34 @@ def generate_orbis(customers):
             'revenue': random.randint(1000000, 100000000),
             'employees': random.randint(10, 10000),
             'risk_score': random.choice(['Low', 'Medium', 'High']),
-            'last_updated': fake.date_between(start_date='-1y', end_date='today').strftime('%Y-%m-%d')
+            'last_updated': fake.date_between(start_date='-1y', end_date='today').strftime('%Y-%m-%d'),
+            'email': email,
+            'phone': phone,
+            'address': address
         }
         orbis_records.append(orbis_record)
     
     return orbis_records
 
-def generate_worldcheck(customers):
-    """Generate 100K WorldCheck records with 10% overlap with customers"""
+def generate_worldcheck():
+    """Generate 100K WorldCheck records"""
     print("Generating WorldCheck data...")
     
     worldcheck_records = []
-    customer_overlap_count = int(WORLDCHECK_COUNT * CUSTOMER_WORLDCHECK_OVERLAP)
     
-    # Select customers for overlap
-    overlap_customers = random.sample(customers, customer_overlap_count)
-    
-    # Generate WorldCheck records with customer overlap
     for i in range(WORLDCHECK_COUNT):
-        if i < customer_overlap_count:
-            # Use customer data with variations
-            customer = overlap_customers[i]
-            name_variations = generate_name_variations(customer['name'])
-            name = random.choice(name_variations)
+        # Generate entity
+        if random.random() < 0.8:  # 80% individuals, 20% entities
+            name = fake.name()
         else:
-            # Generate new entity
-            if random.random() < 0.8:  # 80% individuals, 20% entities
-                name = fake.name()
-            else:
-                name = fake.company()
+            name = fake.company()
         
         country = random.choice(COUNTRIES)
         risk_category = random.choice(RISK_CATEGORIES)
         list_type = random.choice(LIST_TYPES)
+        email = generate_email_from_name(name) if ' ' in name else generate_company_email_from_name(name)
+        phone = generate_phone_number()
+        address = fake.address()
         
         worldcheck_record = {
             'wc_id': f'WC{i+1:06d}',
@@ -220,7 +171,10 @@ def generate_worldcheck(customers):
             'listing_date': fake.date_between(start_date='-5y', end_date='today').strftime('%Y-%m-%d'),
             'last_updated': fake.date_between(start_date='-1y', end_date='today').strftime('%Y-%m-%d'),
             'status': 'Active',
-            'notes': fake.text(max_nb_chars=100)
+            'notes': fake.text(max_nb_chars=100),
+            'email': email,
+            'phone': phone,
+            'address': address
         }
         worldcheck_records.append(worldcheck_record)
     
@@ -260,84 +214,110 @@ def generate_suspicious_patterns():
     
     return patterns
 
-def generate_transactions(customers, orbis_records, worldcheck_records):
-    """Generate 1M transactions with all customers appearing"""
+def generate_transactions(orbis_records, worldcheck_records):
+    """Generate 1M transactions using parties from Orbis and WorldCheck"""
     print("Generating transaction data...")
     
     transactions = []
     suspicious_patterns = generate_suspicious_patterns()
     pattern_index = 0
     
-    # Ensure all customers appear in transactions
-    customer_transaction_count = len(customers)
-    remaining_transactions = TRANSACTION_COUNT - customer_transaction_count
+    # Create party pool from Orbis and WorldCheck
+    party_pool = []
     
-    # Generate transactions for all customers
-    for i, customer in enumerate(customers):
-        # Generate 1-3 transactions per customer
-        num_transactions = random.randint(1, 3)
-        for j in range(num_transactions):
-            transaction = generate_single_transaction(customer, i, j, suspicious_patterns, pattern_index)
-            transactions.append(transaction)
+    # Add Orbis companies
+    for orbis in orbis_records:
+        party_pool.append({
+            'name': orbis['company_name'],
+            'email': orbis['email'],
+            'phone': orbis['phone'],
+            'address': orbis['address'],
+            'country': orbis['country_name'],
+            'source': 'orbis'
+        })
+    
+    # Add WorldCheck entities
+    for wc in worldcheck_records:
+        party_pool.append({
+            'name': wc['full_name'],
+            'email': wc['email'],
+            'phone': wc['phone'],
+            'address': wc['address'],
+            'country': wc['nationality'],
+            'source': 'worldcheck'
+        })
+    
+    # Generate transactions
+    for i in range(TRANSACTION_COUNT):
+        # Select random parties for transaction
+        originator = random.choice(party_pool)
+        beneficiary = random.choice(party_pool)
+        
+        # Determine if this should be a suspicious transaction
+        is_suspicious = pattern_index < len(suspicious_patterns)
+        
+        if is_suspicious:
+            pattern = suspicious_patterns[pattern_index]
+            amount = pattern['amount']
+            transaction_time = pattern['time']
             pattern_index += 1
-    
-    # Generate remaining transactions
-    for i in range(remaining_transactions):
-        customer = random.choice(customers)
-        transaction = generate_single_transaction(customer, len(transactions), 0, suspicious_patterns, pattern_index)
+        else:
+            amount = random.randint(5, 8000000)
+            transaction_time = fake.date_time_between(start_date='-1y', end_date='today')
+        
+        # Generate third party names
+        tp_originator = fake.name() if random.random() < 0.3 else ''
+        tp_beneficiary = fake.name() if random.random() < 0.3 else ''
+        
+        # Generate emails and phones for third parties
+        tp_originator_email = generate_email_from_name(tp_originator) if tp_originator else ''
+        tp_beneficiary_email = generate_email_from_name(tp_beneficiary) if tp_beneficiary else ''
+        tp_originator_phone = generate_phone_number() if tp_originator else ''
+        tp_beneficiary_phone = generate_phone_number() if tp_beneficiary else ''
+        
+        transaction = {
+            'transaction_id': f'TXN{i+1:07d}',
+            'record_id': random.randint(100000, 999999),
+            'type': random.choice(['XA', 'IN']),
+            'party_type': random.choice(['Originator', 'Beneficiary']),
+            'transaction_reference': f'REF{transaction_time.strftime("%Y%m%d")}{random.randint(1, 9999):04d}',
+            'currency': random.choice(['USD', 'EUR', 'GBP', 'JPY', 'CAD', 'AUD']),
+            'transaction_type': random.choice(TRANSACTION_TYPES),
+            'transaction_status': random.choice(['Completed', 'Pending', 'Failed']),
+            'transaction_amount': amount,
+            'transaction_description': fake.sentence(),
+            'transaction_category': random.choice(BUSINESS_CATEGORIES),
+            'exchange_rate': round(random.uniform(0.5, 2.0), 2),
+            'fees': round(amount * random.uniform(0.001, 0.01), 2),
+            'originator_name': originator['name'],
+            'originator_account': f"{random.choice(COUNTRIES)}{random.randint(100000000, 999999999)}",
+            'originator_institution': fake.company(),
+            'originator_country': originator['country'],
+            'originator_address': originator['address'],
+            'beneficiary_name': beneficiary['name'],
+            'beneficiary_account': f"{random.choice(COUNTRIES)}{random.randint(100000000, 999999999)}",
+            'beneficiary_institution': fake.company(),
+            'beneficiary_country': beneficiary['country'],
+            'beneficiary_address': beneficiary['address'],
+            'transaction_date': transaction_time.strftime('%Y-%m-%d %H:%M:%S'),
+            'credit_debit': 'CREDIT' if random.random() < 0.5 else 'DEBIT',
+            'originator_institute': fake.company() if random.random() < 0.7 else '',
+            'beneficiary_institute': fake.company() if random.random() < 0.7 else '',
+            'TP_originator': tp_originator,
+            'TP_beneficiary': tp_beneficiary,
+            'email_beneficiary': beneficiary['email'],
+            'email_originator': originator['email'],
+            'email_TP_beneficiary': tp_beneficiary_email,
+            'email_TP_originator': tp_originator_email,
+            'phone_beneficiary': beneficiary['phone'],
+            'phone_originator': originator['phone'],
+            'phone_TP_beneficiary': tp_beneficiary_phone,
+            'phone_TP_originator': tp_originator_phone
+        }
+        
         transactions.append(transaction)
-        pattern_index += 1
     
     return transactions
-
-def generate_single_transaction(customer, transaction_num, sub_num, suspicious_patterns, pattern_index):
-    """Generate a single transaction"""
-    
-    # Determine if this should be a suspicious transaction
-    is_suspicious = pattern_index < len(suspicious_patterns)
-    
-    if is_suspicious:
-        pattern = suspicious_patterns[pattern_index]
-        amount = pattern['amount']
-        transaction_time = pattern['time']
-    else:
-        amount = random.randint(5, 8000000)
-        transaction_time = fake.date_time_between(start_date='-1y', end_date='today')
-    
-    # Generate transaction data
-    transaction = {
-        'transaction_id': f'TXN{transaction_num+1:07d}',
-        'record_id': random.randint(100000, 999999),
-        'type': random.choice(['XA', 'IN']),
-        'party_type': random.choice(['Originator', 'Beneficiary']),
-        'transaction_reference': f'REF{transaction_time.strftime("%Y%m%d")}{random.randint(1, 9999):04d}',
-        'currency': random.choice(['USD', 'EUR', 'GBP', 'JPY', 'CAD', 'AUD']),
-        'transaction_type': random.choice(TRANSACTION_TYPES),
-        'transaction_status': random.choice(['Completed', 'Pending', 'Failed']),
-        'transaction_amount': amount,
-        'transaction_description': fake.sentence(),
-        'transaction_category': random.choice(BUSINESS_CATEGORIES),
-        'exchange_rate': round(random.uniform(0.5, 2.0), 2),
-        'fees': round(amount * random.uniform(0.001, 0.01), 2),
-        'originator_name': customer['name'],
-        'originator_account': f"{random.choice(COUNTRIES)}{random.randint(100000000, 999999999)}",
-        'originator_institution': fake.company(),
-        'originator_country': random.choice(COUNTRIES),
-        'originator_address': customer['address'],
-        'beneficiary_name': fake.name() if random.random() < 0.7 else fake.company(),
-        'beneficiary_account': f"{random.choice(COUNTRIES)}{random.randint(100000000, 999999999)}",
-        'beneficiary_institution': fake.company(),
-        'beneficiary_country': random.choice(COUNTRIES),
-        'beneficiary_address': fake.address(),
-        'transaction_date': transaction_time.strftime('%Y-%m-%d %H:%M:%S'),
-        'credit_debit': 'CREDIT' if random.random() < 0.5 else 'DEBIT',
-        'originator_institute': fake.company() if random.random() < 0.7 else '',
-        'beneficiary_institute': fake.company() if random.random() < 0.7 else '',
-        'TP_originator': fake.name() if random.random() < 0.3 else '',
-        'TP_beneficiary': fake.name() if random.random() < 0.3 else ''
-    }
-    
-    return transaction
 
 def save_to_csv(data, filename, fieldnames):
     """Save data to CSV file"""
@@ -352,29 +332,26 @@ def main():
     """Main function to generate all sample data"""
     print("Starting sample data generation...")
     
-    # Generate customers first
-    customers = generate_customers()
-    save_to_csv(customers, 'data/sample_customer_large.csv', 
-                ['id', 'name', 'email', 'phone', 'address', 'source_system'])
-    
-    # Generate Orbis with customer overlap
-    orbis_records = generate_orbis(customers)
+    # Generate Orbis data
+    orbis_records = generate_orbis()
     save_to_csv(orbis_records, 'data/sample_orbis_large.csv',
                 ['orbis_id', 'company_name', 'legal_name', 'country_code', 'country_name', 
                  'incorporation_date', 'status', 'industry_code', 'industry_name', 
                  'ultimate_parent_name', 'ultimate_parent_country', 'beneficial_owners',
-                 'share_capital', 'revenue', 'employees', 'risk_score', 'last_updated'])
+                 'share_capital', 'revenue', 'employees', 'risk_score', 'last_updated',
+                 'email', 'phone', 'address'])
     
-    # Generate WorldCheck with customer overlap
-    worldcheck_records = generate_worldcheck(customers)
+    # Generate WorldCheck data
+    worldcheck_records = generate_worldcheck()
     save_to_csv(worldcheck_records, 'data/sample_wc_large.csv',
                 ['wc_id', 'full_name', 'aliases', 'date_of_birth', 'place_of_birth', 
                  'nationality', 'passport_numbers', 'id_numbers', 'entity_type', 
                  'risk_category', 'list_type', 'list_name', 'list_country', 
-                 'reason_for_listing', 'listing_date', 'last_updated', 'status', 'notes'])
+                 'reason_for_listing', 'listing_date', 'last_updated', 'status', 'notes',
+                 'email', 'phone', 'address'])
     
-    # Generate transactions
-    transactions = generate_transactions(customers, orbis_records, worldcheck_records)
+    # Generate transaction data
+    transactions = generate_transactions(orbis_records, worldcheck_records)
     save_to_csv(transactions, 'data/sample_trnx_large.csv',
                 ['transaction_id', 'record_id', 'type', 'party_type', 'transaction_reference',
                  'currency', 'transaction_type', 'transaction_status', 'transaction_amount',
@@ -383,10 +360,11 @@ def main():
                  'originator_country', 'originator_address', 'beneficiary_name', 
                  'beneficiary_account', 'beneficiary_institution', 'beneficiary_country',
                  'beneficiary_address', 'transaction_date', 'credit_debit', 
-                 'originator_institute', 'beneficiary_institute', 'TP_originator', 'TP_beneficiary'])
+                 'originator_institute', 'beneficiary_institute', 'TP_originator', 'TP_beneficiary',
+                 'email_beneficiary', 'email_originator', 'email_TP_beneficiary', 'email_TP_originator',
+                 'phone_beneficiary', 'phone_originator', 'phone_TP_beneficiary', 'phone_TP_originator'])
     
     print("Sample data generation completed!")
-    print(f"Generated {len(customers)} customers")
     print(f"Generated {len(orbis_records)} Orbis records")
     print(f"Generated {len(worldcheck_records)} WorldCheck records")
     print(f"Generated {len(transactions)} transactions")

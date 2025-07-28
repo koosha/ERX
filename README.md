@@ -1,4 +1,4 @@
-# Entity Resolution System with TigerGraph
+# Entity Resolution eXperiment with TigerGraph
 
 Disclaimer: Entity Resolution eXperiment (ERX) is my personal research during my free time and there is no checks or gaurantee. Please do your own checks if you are using this code for your research and projects. All sample data and examples are arbitrary and synthetic data I generated. No personally identifiable inforamtion is in this project. 
 
@@ -68,7 +68,7 @@ For complete functionality with TigerGraph:
 ```bash
 python example_usage.py
 ```
-"""
+
 
 ## Generated Features
 
