@@ -43,7 +43,6 @@ env/
 .Trashes
 ehthumbs.db
 Thumbs.db
-notes.txt
 
 # Logs
 logs/
@@ -57,7 +56,9 @@ output/
 data/*_large.csv
 data/entity.csv
 
-# Allow XLSX files in data_misc folder
+# Allow XLSX files in data_misc folder (explicitly allow)
+!data_misc/
+data_misc/*
 !data_misc/*.xlsx
 
 # Environment variables
@@ -74,6 +75,3 @@ data/entity.csv
 # TigerGraph
 *.gsql
 *.json.gz
-
-# Personal notes
-notes.txt
