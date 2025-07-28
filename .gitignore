@@ -56,10 +56,10 @@ output/
 data/*_large.csv
 data/entity.csv
 
-# Allow XLSX files in data_misc folder (explicitly allow)
-!data_misc/
-data_misc/*
-!data_misc/*.xlsx
+# Allow XLSX files in data/data_misc folder
+!data/data_misc/
+data/data_misc/*
+!data/data_misc/*.xlsx
 
 # Environment variables
 .env
