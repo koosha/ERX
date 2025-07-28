@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Large Party Reference Generator
-Generates party_ref_large.csv from the large source files
+Generates party_ref_large.csv from the three large source files
 """
 
 import pandas as pd
@@ -31,231 +31,219 @@ def load_large_source_data():
     
     return trnx_df, orbis_df, wc_df
 
-def safe_string(value):
-    """Convert value to safe string, handling NaN values"""
-    if pd.isna(value) or value == '':
-        return ''
-    return str(value)
-
-def extract_parties_from_transactions(trnx_df: pd.DataFrame) -> List[Dict]:
+def extract_parties_from_transactions(trnx_df):
     """Extract parties from transaction data"""
-    print("Extracting parties from transactions...")
+    print("Extracting parties from transaction data...")
     
     parties = []
-    party_id = 1
-    
-    # Track unique parties within trnx source
-    trnx_parties = {}
     
     # Extract originators
-    for _, row in trnx_df.iterrows():
-        name = safe_string(row['originator_name'])
-        email = safe_string(row['email_originator'])
-        
-        # Create key for deduplication within trnx
-        key = (name.lower(), email.lower())
-        
-        if key not in trnx_parties:
-            # New party in trnx
+    for idx, row in trnx_df.iterrows():
+        if pd.notna(row['originator_name']) and row['originator_name'].strip():
             party = {
-                'party_id': party_id,
-                'name': name,
-                'email': email,
-                'phone': safe_string(row['phone_originator']),
-                'address': safe_string(row['originator_address']),
-                'country': safe_string(row['originator_country']),
-                'accounts_list': json.dumps([safe_string(row['originator_account'])]),
+                'name': row['originator_name'],
+                'email': row['originator_email'] if pd.notna(row['originator_email']) else "",
+                'phone': row['originator_phone'] if pd.notna(row['originator_phone']) else "",
+                'address': row['originator_address'] if pd.notna(row['originator_address']) else "",
+                'country': row['originator_country'] if pd.notna(row['originator_country']) else "",
+                'accounts_list': [row['originator_account']] if pd.notna(row['originator_account']) else [],
                 'source_system': 'trnx',
-                'source_index_list': json.dumps([safe_string(row['transaction_id'])])
+                'source_index_list': [row['transaction_id']]
             }
             parties.append(party)
-            trnx_parties[key] = party_id
-            party_id += 1
-        else:
-            # Existing party in trnx - update accounts and indices
-            existing_party = parties[trnx_parties[key] - 1]
-            existing_party['accounts_list'] = json.dumps(
-                json.loads(existing_party['accounts_list']) + [safe_string(row['originator_account'])]
-            )
-            existing_party['source_index_list'] = json.dumps(
-                json.loads(existing_party['source_index_list']) + [safe_string(row['transaction_id'])]
-            )
     
     # Extract beneficiaries
-    for _, row in trnx_df.iterrows():
-        name = safe_string(row['beneficiary_name'])
-        email = safe_string(row['email_beneficiary'])
-        
-        # Create key for deduplication within trnx
-        key = (name.lower(), email.lower())
-        
-        if key not in trnx_parties:
-            # New party in trnx
+    for idx, row in trnx_df.iterrows():
+        if pd.notna(row['beneficiary_name']) and row['beneficiary_name'].strip():
             party = {
-                'party_id': party_id,
-                'name': name,
-                'email': email,
-                'phone': safe_string(row['phone_beneficiary']),
-                'address': safe_string(row['beneficiary_address']),
-                'country': safe_string(row['beneficiary_country']),
-                'accounts_list': json.dumps([safe_string(row['beneficiary_account'])]),
+                'name': row['beneficiary_name'],
+                'email': row['beneficiary_email'] if pd.notna(row['beneficiary_email']) else "",
+                'phone': row['beneficiary_phone'] if pd.notna(row['beneficiary_phone']) else "",
+                'address': row['beneficiary_address'] if pd.notna(row['beneficiary_address']) else "",
+                'country': row['beneficiary_country'] if pd.notna(row['beneficiary_country']) else "",
+                'accounts_list': [row['beneficiary_account']] if pd.notna(row['beneficiary_account']) else [],
                 'source_system': 'trnx',
-                'source_index_list': json.dumps([safe_string(row['transaction_id'])])
+                'source_index_list': [row['transaction_id']]
             }
             parties.append(party)
-            trnx_parties[key] = party_id
-            party_id += 1
-        else:
-            # Existing party in trnx - update accounts and indices
-            existing_party = parties[trnx_parties[key] - 1]
-            existing_party['accounts_list'] = json.dumps(
-                json.loads(existing_party['accounts_list']) + [safe_string(row['beneficiary_account'])]
-            )
-            existing_party['source_index_list'] = json.dumps(
-                json.loads(existing_party['source_index_list']) + [safe_string(row['transaction_id'])]
-            )
     
-    # Extract third parties if they exist
-    for _, row in trnx_df.iterrows():
-        if row['TP_originator'] and pd.notna(row['TP_originator']):
-            name = safe_string(row['TP_originator'])
-            email = safe_string(row['email_TP_originator'])
-            
-            key = (name.lower(), email.lower())
-            
-            if key not in trnx_parties:
-                party = {
-                    'party_id': party_id,
-                    'name': name,
-                    'email': email,
-                    'phone': safe_string(row['phone_TP_originator']),
-                    'address': '',  # Not available in transaction data
-                    'country': '',  # Not available in transaction data
-                    'accounts_list': json.dumps([]),
-                    'source_system': 'trnx',
-                    'source_index_list': json.dumps([safe_string(row['transaction_id'])])
-                }
-                parties.append(party)
-                trnx_parties[key] = party_id
-                party_id += 1
-            else:
-                # Update existing party
-                existing_party = parties[trnx_parties[key] - 1]
-                existing_party['source_index_list'] = json.dumps(
-                    json.loads(existing_party['source_index_list']) + [safe_string(row['transaction_id'])]
-                )
-        
-        if row['TP_beneficiary'] and pd.notna(row['TP_beneficiary']):
-            name = safe_string(row['TP_beneficiary'])
-            email = safe_string(row['email_TP_beneficiary'])
-            
-            key = (name.lower(), email.lower())
-            
-            if key not in trnx_parties:
-                party = {
-                    'party_id': party_id,
-                    'name': name,
-                    'email': email,
-                    'phone': safe_string(row['phone_TP_beneficiary']),
-                    'address': '',  # Not available in transaction data
-                    'country': '',  # Not available in transaction data
-                    'accounts_list': json.dumps([]),
-                    'source_system': 'trnx',
-                    'source_index_list': json.dumps([safe_string(row['transaction_id'])])
-                }
-                parties.append(party)
-                trnx_parties[key] = party_id
-                party_id += 1
-            else:
-                # Update existing party
-                existing_party = parties[trnx_parties[key] - 1]
-                existing_party['source_index_list'] = json.dumps(
-                    json.loads(existing_party['source_index_list']) + [safe_string(row['transaction_id'])]
-                )
+    # Extract TP_originators
+    for idx, row in trnx_df.iterrows():
+        if pd.notna(row['TP_originator_name']) and row['TP_originator_name'].strip():
+            party = {
+                'name': row['TP_originator_name'],
+                'email': row['TP_originator_email'] if pd.notna(row['TP_originator_email']) else "",
+                'phone': row['TP_originator_phone'] if pd.notna(row['TP_originator_phone']) else "",
+                'address': row['TP_originator_address'] if pd.notna(row['TP_originator_address']) else "",
+                'country': row['TP_originator_country'] if pd.notna(row['TP_originator_country']) else "",
+                'accounts_list': [row['TP_originator_account']] if pd.notna(row['TP_originator_account']) else [],
+                'source_system': 'trnx',
+                'source_index_list': [row['transaction_id']]
+            }
+            parties.append(party)
     
-    print(f"Extracted {len(parties)} parties from transactions")
-    return parties, party_id
+    # Extract TP_beneficiaries
+    for idx, row in trnx_df.iterrows():
+        if pd.notna(row['TP_beneficiary_name']) and row['TP_beneficiary_name'].strip():
+            party = {
+                'name': row['TP_beneficiary_name'],
+                'email': row['TP_beneficiary_email'] if pd.notna(row['TP_beneficiary_email']) else "",
+                'phone': row['TP_beneficiary_phone'] if pd.notna(row['TP_beneficiary_phone']) else "",
+                'address': row['TP_beneficiary_address'] if pd.notna(row['TP_beneficiary_address']) else "",
+                'country': row['TP_beneficiary_country'] if pd.notna(row['TP_beneficiary_country']) else "",
+                'accounts_list': [row['TP_beneficiary_account']] if pd.notna(row['TP_beneficiary_account']) else [],
+                'source_system': 'trnx',
+                'source_index_list': [row['transaction_id']]
+            }
+            parties.append(party)
+    
+    print(f"Extracted {len(parties)} party records from transactions")
+    return parties
 
-def extract_parties_from_orbis(orbis_df: pd.DataFrame, start_party_id: int) -> List[Dict]:
+def extract_parties_from_orbis(orbis_df):
     """Extract parties from Orbis data"""
-    print("Extracting parties from Orbis...")
+    print("Extracting parties from Orbis data...")
     
     parties = []
-    party_id = start_party_id
     
-    for _, row in orbis_df.iterrows():
-        party = {
-            'party_id': party_id,
-            'name': safe_string(row['company_name']),
-            'email': safe_string(row['email']),
-            'phone': safe_string(row['phone']),
-            'address': safe_string(row['address']),
-            'country': safe_string(row['country_name']),
-            'accounts_list': json.dumps([]),  # No account info in Orbis
-            'source_system': 'orbis',
-            'source_index_list': json.dumps([safe_string(row['orbis_id'])])
-        }
-        parties.append(party)
-        party_id += 1
+    for idx, row in orbis_df.iterrows():
+        if pd.notna(row['company_name']) and row['company_name'].strip():
+            party = {
+                'name': row['company_name'],
+                'email': row['email'] if pd.notna(row['email']) else "",
+                'phone': row['phone'] if pd.notna(row['phone']) else "",
+                'address': row['address'] if pd.notna(row['address']) else "",
+                'country': row['country_name'] if pd.notna(row['country_name']) else "",
+                'accounts_list': [],  # No accounts for Orbis
+                'source_system': 'orbis',
+                'source_index_list': [row['company_id']]
+            }
+            parties.append(party)
     
-    print(f"Extracted {len(parties)} parties from Orbis")
+    print(f"Extracted {len(parties)} party records from Orbis")
     return parties
 
-def extract_parties_from_worldcheck(wc_df: pd.DataFrame, start_party_id: int) -> List[Dict]:
+def extract_parties_from_worldcheck(wc_df):
     """Extract parties from WorldCheck data"""
-    print("Extracting parties from WorldCheck...")
+    print("Extracting parties from WorldCheck data...")
     
     parties = []
-    party_id = start_party_id
     
-    for _, row in wc_df.iterrows():
-        party = {
-            'party_id': party_id,
-            'name': safe_string(row['full_name']),
-            'email': safe_string(row['email']),
-            'phone': safe_string(row['phone']),
-            'address': safe_string(row['address']),
-            'country': safe_string(row['nationality']),  # Use nationality as country
-            'accounts_list': json.dumps([]),  # No account info in WorldCheck
-            'source_system': 'WC',
-            'source_index_list': json.dumps([safe_string(row['wc_id'])])
-        }
-        parties.append(party)
-        party_id += 1
+    for idx, row in wc_df.iterrows():
+        if pd.notna(row['full_name']) and row['full_name'].strip():
+            party = {
+                'name': row['full_name'],
+                'email': row['email'] if pd.notna(row['email']) else "",
+                'phone': row['phone'] if pd.notna(row['phone']) else "",
+                'address': row['address'] if pd.notna(row['address']) else "",
+                'country': row['nationality'] if pd.notna(row['nationality']) else "",
+                'accounts_list': [],  # No accounts for WorldCheck
+                'source_system': 'WC',
+                'source_index_list': [row['wc_id']]
+            }
+            parties.append(party)
     
-    print(f"Extracted {len(parties)} parties from WorldCheck")
+    print(f"Extracted {len(parties)} party records from WorldCheck")
     return parties
 
-def save_party_ref_large(parties: List[Dict], filename: str = 'data/party_ref_large.csv'):
-    """Save party reference data to CSV"""
-    print(f"Saving {len(parties)} parties to {filename}...")
+def consolidate_parties(parties):
+    """Consolidate parties by name and source system"""
+    print("Consolidating parties...")
     
-    df = pd.DataFrame(parties)
-    df.to_csv(filename, index=False)
+    # Group by name and source system
+    party_groups = {}
     
-    print(f"Party reference data saved to {filename}")
+    for party in parties:
+        key = (party['name'].lower().strip(), party['source_system'])
+        
+        if key not in party_groups:
+            party_groups[key] = party
+        else:
+            # Merge with existing party
+            existing = party_groups[key]
+            
+            # Merge source indices
+            existing['source_index_list'].extend(party['source_index_list'])
+            
+            # Merge accounts (only for trnx)
+            if party['source_system'] == 'trnx':
+                existing['accounts_list'].extend(party['accounts_list'])
+            
+            # Use non-empty values for contact info
+            if not existing['email'] and party['email']:
+                existing['email'] = party['email']
+            if not existing['phone'] and party['phone']:
+                existing['phone'] = party['phone']
+            if not existing['address'] and party['address']:
+                existing['address'] = party['address']
+            if not existing['country'] and party['country']:
+                existing['country'] = party['country']
+    
+    consolidated = list(party_groups.values())
+    print(f"Consolidated to {len(consolidated)} unique parties")
+    return consolidated
+
+def create_party_ref_dataframe(consolidated_parties):
+    """Create the final party_ref dataframe"""
+    print("Creating party_ref dataframe...")
+    
+    party_ref_data = []
+    
+    for i, party in enumerate(consolidated_parties):
+        # Remove duplicates from lists
+        unique_accounts = list(set(party['accounts_list'])) if party['accounts_list'] else []
+        unique_indices = list(set(party['source_index_list']))
+        
+        party_ref_record = {
+            'party_id': i + 1,
+            'name': party['name'],
+            'email': party['email'],
+            'phone': party['phone'],
+            'address': party['address'],
+            'country': party['country'],
+            'accounts_list': json.dumps(unique_accounts),
+            'source_system': party['source_system'],
+            'source_index_list': json.dumps(unique_indices)
+        }
+        party_ref_data.append(party_ref_record)
+    
+    return pd.DataFrame(party_ref_data)
 
 def main():
-    """Main function to generate large party reference data"""
-    print("Starting large party reference generation...")
+    """Main function to generate party_ref_large.csv"""
+    print("Starting party_ref generation from large source files...")
     
-    # Load large source data
+    # Load source data
     trnx_df, orbis_df, wc_df = load_large_source_data()
     
-    # Extract parties from each source (no cross-source deduplication)
-    trnx_parties, next_party_id = extract_parties_from_transactions(trnx_df)
-    orbis_parties = extract_parties_from_orbis(orbis_df, next_party_id)
-    wc_parties = extract_parties_from_worldcheck(wc_df, next_party_id + len(orbis_parties))
+    # Extract parties from each source
+    trnx_parties = extract_parties_from_transactions(trnx_df)
+    orbis_parties = extract_parties_from_orbis(orbis_df)
+    wc_parties = extract_parties_from_worldcheck(wc_df)
     
-    # Combine all parties (no deduplication across sources)
+    # Combine all parties
     all_parties = trnx_parties + orbis_parties + wc_parties
+    print(f"Total extracted parties: {len(all_parties)}")
     
-    # Save large party reference data
-    save_party_ref_large(all_parties)
+    # Consolidate parties
+    consolidated_parties = consolidate_parties(all_parties)
     
-    print("\nLarge party reference generation completed!")
-    print(f"Generated {len(all_parties)} total parties")
-    print("Check data/party_ref_large.csv for the complete dataset")
+    # Create final dataframe
+    party_ref_df = create_party_ref_dataframe(consolidated_parties)
+    
+    # Save to file
+    output_file = 'data/party_ref_large.csv'
+    party_ref_df.to_csv(output_file, index=False)
+    print(f"Saved {len(party_ref_df)} party records to {output_file}")
+    
+    # Print summary
+    print("\nSummary:")
+    print(f"Total unique parties: {len(party_ref_df)}")
+    print(f"Parties from trnx: {len(party_ref_df[party_ref_df['source_system'] == 'trnx'])}")
+    print(f"Parties from orbis: {len(party_ref_df[party_ref_df['source_system'] == 'orbis'])}")
+    print(f"Parties from WC: {len(party_ref_df[party_ref_df['source_system'] == 'WC'])}")
+    
+    print("Party reference generation completed!")
 
 if __name__ == "__main__":
     main() 
