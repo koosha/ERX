@@ -8,14 +8,21 @@ Objective: This project aims to combine fuzzy matching, graph-based analysis, an
 
 This system provides three main components:
 
-1. **Entity Resolution**: Identifies and groups similar records into entities with proper classification
+1. **Entity Resolution**: Identifies and groups similar records into entities with proper classification from multiple source systems
 2. **Graph Generation**: Creates a graph in TigerGraph with entities as nodes and transactions as edges
 3. **Feature Generation**: Computes graph-based features like PageRank, centrality measures, and risk scores
 
+The system processes data from three source systems:
+- **Transaction Data** (trnx): Originator, beneficiary, and third-party information
+- **Orbis Data** (orbis): Company information and corporate records
+- **WorldCheck Data** (WC): Individual and entity screening records
+
 ## Features
 
-- **Multi-field Entity Resolution**: Uses fuzzy matching on names, emails, phones, and addresses
-- **Entity Classification**: Automatically classifies entities as individuals ('ind') or businesses ('biz')
+- **Multi-source Entity Resolution**: Processes parties from transaction, Orbis, and WorldCheck data
+- **Optional Field Handling**: Gracefully handles missing email, phone, and address data
+- **Cross-source Entity Mapping**: Maintains separate entity records for same entity across sources
+- **Entity Classification**: Automatically classifies entities as individuals or businesses
 - **PEP Detection**: Identifies Politically Exposed Persons
 - **Risk Scoring**: Calculates risk scores based on various factors
 - **Graph Analytics**: Leverages TigerGraph for advanced graph algorithms
@@ -23,6 +30,21 @@ This system provides three main components:
 - **Comprehensive Reporting**: Detailed summaries and risk analysis
 
 ## Architecture
+
+<style>
+.mermaid {
+    background: transparent !important;
+}
+.mermaid svg {
+    max-width: 100%;
+    height: auto;
+}
+/* Hide Mermaid controls */
+.mermaid .mermaid-controls,
+.mermaid .mermaid-toolbar {
+    display: none !important;
+}
+</style>
 
 ```mermaid
 graph LR
@@ -76,7 +98,6 @@ graph LR
     F --> G
     F --> H
 ```
-```
 
 ## Quick Start
 
@@ -89,27 +110,39 @@ python src/data_synthesizer/generate_sample_data.py
 ```
 
 This creates:
-- `data/sample_customer_large.csv` (500K customer records)
-- `data/sample_trnx_large.csv` (1M transaction records)
-- `data/sample_orbis_large.csv` (100K Orbis records)
-- `data/sample_wc_large.csv` (100K WorldCheck records)
+- `data/sample_trnx_large.csv` (1M transaction records with 42 fields)
+- `data/sample_orbis_large.csv` (100K Orbis company records)
+- `data/sample_wc_large.csv` (100K WorldCheck screening records)
 
-### 2. Run Entity Resolution Only
+### 2. Generate Party Reference Data
 
-For testing without TigerGraph:
+Create consolidated party data from the three source systems:
 
 ```bash
-python example_usage.py --entity-only
+python src/data_synthesizer/generate_party_ref_large.py
 ```
 
-### 3. Run Full Pipeline
+This creates:
+- `data/party_ref_large.csv` (consolidated parties from all sources)
+
+### 3. Run Entity Resolution
+
+Process party reference data to identify and group similar entities:
+
+```bash
+python src/run_entity_resolution_optimized.py
+```
+
+This creates:
+- `data/entity.csv` (resolved entities with confidence scores)
+
+### 4. Run Full Pipeline
 
 For complete functionality with TigerGraph:
 
 ```bash
 python example_usage.py
 ```
-
 
 ## Generated Features
 
@@ -143,58 +176,70 @@ The system generates the following categories of features:
 
 The pipeline generates several output files:
 
+- `data/entity.csv`: Resolved entities with confidence scores and resolved fields
 - `output/entities_with_features.csv`: Complete entity data with all features
 - `output/features.csv`: All generated features
-- `output/entity_mapping.json`: Mapping from customer names to entity IDs
+- `output/entity_mapping.json`: Mapping from party IDs to entity IDs
 - `output/pipeline_summary.json`: Comprehensive pipeline summary
-- `output/resolved_entities.csv`: Entity resolution results
-
-
 
 ## Entity Resolution Logic and Details
 
-The following rules and logic are used for entity resolution:
+The system processes party data from three source systems and applies the following rules:
 
-### 1. Preprocessing
-- **Names:** Remove extra spaces and punctuation, convert to lowercase (if configured).
-- **Emails:** Convert to lowercase (if configured).
-- **Phones:** Remove all non-digit characters (if configured).
-- **Addresses:** Normalize spaces and optionally convert to lowercase.
+### 1. Data Sources and Party Extraction
+- **Transaction Data**: Extract parties from `originator_name`, `beneficiary_name`, `TP_originator_name`, `TP_beneficiary_name`
+- **Orbis Data**: Extract parties from `company_name`
+- **WorldCheck Data**: Extract parties from `full_name`
 
-### 2. Similarity Calculation
-For each pair of records, the following fields are compared:
-- **Name:** Uses a combination of fuzzy matching algorithms (e.g., token sort ratio, partial ratio, Levenshtein distance) with configurable weights.
-- **Email:** If emails are identical, similarity is 1.0. Otherwise, compares local part and domain separately, giving higher weight to domain matches.
-- **Phone:** If phone numbers are identical, similarity is 1.0. If the last 10 digits match, similarity is 0.9. Otherwise, uses fuzzy ratio.
-- **Address:** Uses fuzzy matching algorithms (e.g., token set ratio, partial ratio) with configurable weights.
+### 2. Party Reference Schema
+Each party record contains:
+- `party_id`: Unique identifier
+- `name`, `email`, `phone`, `address`, `country`: Contact information (optional fields)
+- `accounts_list`: Account numbers (only for transaction source)
+- `source_system`: Origin system (trnx, orbis, WC)
+- `source_index_list`: References to original source records
 
-A weighted average of these similarities is computed using the following default weights:
-- Name: 0.4
-- Email: 0.3
-- Phone: 0.2
-- Address: 0.1
+### 3. Preprocessing
+- **Names:** Remove extra spaces and punctuation, convert to lowercase
+- **Emails:** Convert to lowercase, handle NaN values
+- **Phones:** Remove all non-digit characters, handle NaN values
+- **Addresses:** Normalize spaces and convert to lowercase, handle NaN values
 
-### 3. Clustering/Grouping Records
-- **First pass:** Records with exact matches on key fields (email or phone) are grouped together.
-- **Second pass:** Remaining records are compared to existing clusters using the overall similarity score. If the average similarity to a cluster exceeds the configured threshold (default: 0.80), the record is added to that cluster. Otherwise, a new cluster (entity) is created for the record.
+### 4. Similarity Calculation
+For each pair of parties, the following fields are compared with weighted scoring:
+- **Name:** Fuzzy matching (40% weight)
+- **Email:** Exact match gets 1.0, otherwise fuzzy matching (30% weight)
+- **Phone:** Exact match gets 1.0, otherwise fuzzy matching (20% weight)
+- **Address:** Fuzzy matching (10% weight)
 
-### 4. Entity Attributes and Classification
-- **Entity Type:** If any record in the cluster contains business-related keywords (e.g., inc, corp, ltd, llc, company), the entity is classified as a business (`biz`). Otherwise, it is classified as an individual (`ind`).
-- **PEP Status:** If any record’s name contains keywords like senator, minister, president, etc., the entity is flagged as a Politically Exposed Person (`pep_ind`).
-- **Confidence Score:** For single-record entities: 0.7. For multi-record entities: average similarity within the cluster, boosted for larger clusters.
-- **Risk Score:** Increased if the entity has multiple records or if names/emails contain suspicious patterns (e.g., “test”, “fake”, “dummy”).
-- **Primary Fields:** The most representative name, email, phone, and address are selected (e.g., longest name, first email, etc.).
+### 5. Entity Resolution Process
+- **Clustering:** Group parties with similarity ≥ 0.7 into entities
+- **Cross-source Logic:** Each entity represents one real-world entity from one source system
+- **Same entity across sources:** Creates separate entity records (no cross-source deduplication)
+- **Within-source Deduplication:** Aggregates multiple references to the same entity within a source
 
-### 5. Output
-Each entity contains:
-- `entity_id`, `entity_type`, `pep_ind`, `confidence`, `risk_score`, `primary_name`, `primary_email`, `primary_phone`, `primary_address`, `record_count`, `sources`, and all associated records.
+### 6. Entity Output Schema
+Each resolved entity contains:
+- `entity_id`: Unique entity identifier
+- `party_ids`: List of party IDs belonging to this entity
+- `confidence_score`: Resolution confidence (0.0-1.0)
+- `resolved_name`, `resolved_email`, `resolved_phone`, `resolved_address`, `resolved_country`: Best available values
+- `source_systems`: List of source systems this entity appears in
+- `records`: Complete party data as JSON array
 
-### 6. Graph Databases
+### 7. Graph Databases
 Among different graph databases I chose Tiger Graph for scalability reasons. See the [comparison of graph databases](data/graph_database_comparison.xlsx) for more information. 
-
 
 ## Support & License
 
 This is a personal research project and there is no support or licensing
+
+<!--
+## Roadmap
+[ ] Support for additional data sources
+[ ] Machine learning model integration
+[ ] Integraiton to TigerGraph
+[ ] API endpoints
+[ ] Docker containerization -->
 
 
