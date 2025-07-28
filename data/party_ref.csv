@@ -1,0 +1,11 @@
+paty_id,name,email,phone,address,country,account_ref,source_system,source_index_list
+1,John Smith,john.smith@email.com,555-123-4567,123 Main St Anytown NY 12345,,,trnx,
+2,J. Smith,jsmith@email.com,5551234567,123 Main Street Anytown NY 12345,,,orbis,
+3,Mary Johnson,mary.j@company.com,555-987-6543,456 Oak Ave Springfield IL 62701,,,trnx,
+4,Mary J Johnson,mary.johnson@company.com,(555) 987-6543,456 Oak Avenue Springfield IL 62701,,,WC,
+5,Bob Williams,bob.williams@test.org,555-555-1212,789 Pine Rd Austin TX 73301,,,orbis,
+6,Robert Williams,rwilliams@test.org,555.555.1212,789 Pine Road Austin TX 73301,,,trnx,
+7,Susan Davis,susan@email.net,555-222-3333,321 Elm St Boston MA 02101,,,WC,
+8,Lisa Brown,lisa.brown@email.com,555-444-5555,654 Maple Dr Denver CO 80202,,,trnx,
+9,Mike Johnson,mike.j@email.com,555-666-7777,987 Cedar Ave Miami FL 33101,,,orbis,
+10,Michael Johnson,michael.johnson@email.com,5556667777,987 Cedar Avenue Miami FL 33101,,,WC,

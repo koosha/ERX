@@ -1,0 +1,6 @@
+party_id,name,email,phone,address,country,accounts_list,source_system,source_index_list
+1,Acme Corp Ltd,acme@acmecorp.com,555-123-4567,123 Main St New York NY 10001,US,"[""US123456789""]",trnx,"[""TXN001""]"
+2,Smith Enterprises,contact@smitherprises.com,555-333-4444,456 Oak Ave Chicago IL 60601,US,"[""US234567890""]",trnx,"[""TXN002""]"
+3,Johnson Manufacturing,info@johnsonmfg.com,555-555-6666,789 Pine Rd Austin TX 73301,US,"[""US345678901""]",trnx,"[""TXN003""]"
+4,Williams Trading,trade@williamstrading.com,555-777-8888,321 Elm St Boston MA 02101,US,"[""US456789012""]",trnx,"[""TXN004""]"
+5,Davis Consulting,consult@davisconsulting.com,555-999-0000,654 Maple Dr Denver CO 80202,US,"[""US567890123""]",trnx,"[""TXN005""]"
