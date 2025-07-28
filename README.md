@@ -31,22 +31,8 @@ The system processes data from three source systems:
 
 ## Architecture
 
-<style>
-.mermaid {
-    background: transparent !important;
-}
-.mermaid svg {
-    max-width: 100%;
-    height: auto;
-}
-/* Hide Mermaid controls */
-.mermaid .mermaid-controls,
-.mermaid .mermaid-toolbar {
-    display: none !important;
-}
-</style>
-
 ```mermaid
+%%{init: {'theme': 'base', 'securityLevel': 'loose', 'flowchart': {'useMaxWidth': true, 'htmlLabels': true}, 'mermaid': {'navigation': false}}}%%
 graph LR
     subgraph "Data Sources"
         A1["Transaction Data<br/>Originator/Beneficiary/TP<br/>information"]
